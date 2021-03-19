@@ -2,6 +2,7 @@
 #include<GLFW/glfw3.h>
 #include<iostream>
 #include<fstream>
+#include "Shader.h"
 using namespace std;
 struct Color {
 	float r, g, b, a;
@@ -57,136 +58,69 @@ int main() {
 
 	glViewport(0, 0, 500, 550);
 
-	const int verts = 6;
+	const int verts = 4;
 
-	float polygon[verts*(4+3)] = {
-		-0.5f,0.0f,0.0f,	-0.5f,0.0f,0.0f,1.0f,
-		0.0f,0.75f,0.0f,	0.0f,0.75f,0.0f,1.0f,
-		0.5f,0.0f,0.0f,		0.5f,0.0f,0.0f,1.0f,
-
-		-0.5f,0.0f,0.0f,   	-0.5f,0.0f,0.0f,1.0f,
-		0.0f,-0.75f,0.0f,	1.0f,-0.75f,0.0f,1.0f,
-		0.5f,0.0f,0.0f	,	0.5f,0.0f,0.0f,1.0f,
+	float polygon[verts*(3+3)] = {
+		0.0f,0.75f,0.0f,	0.0f,0.75f,0.0f,
+		0.5f,0.0f,0.0f,		0.5f,0.0f,0.0f,
+		-0.5f,0.0f,0.0f,	-0.5f,0.0f,0.0f,
+		0.0f,-0.75f,0.0f,	1.0f,-0.75f,0.0f,
+	
+		
+	
 	};
 
-	unsigned int VBO_polygon;
-	glGenBuffers(1, &VBO_polygon);
+	unsigned int indices[] = {
+		0,1,2,
+		1,2,3
+	};
 
-	unsigned VAO_polygon;
+	unsigned int VBO_polygon, VAO_polygon,EBO_polygon;
+	glGenBuffers(1, &VBO_polygon);
+	glGenBuffers(1, &EBO_polygon);
 	glGenVertexArrays(1, &VAO_polygon);
 
 	glBindVertexArray(VAO_polygon);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO_polygon);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * verts * 7, polygon, GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)0);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * verts * 6, polygon, GL_STATIC_DRAW);
+	
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO_polygon);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * 6, indices, GL_STATIC_DRAW);
+	
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6* sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 7 * sizeof(float), (void*)(3*sizeof(float)));
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3*sizeof(float)));
 	glEnableVertexAttribArray(1);
-	/*char *shaderText=new char[1000],str[200];
-	ifstream sfile;
-	sfile.open("basic.vs");
-	while (!sfile.eof())
-	{
-		str[0] = '\0';
-		sfile >> str;
-		if(str[0]!='\0')
-		strcat_s(shaderText,200, str);
-	}
-	sfile.close();*/
+	
+	Shader* polygon_shader = new Shader("shaders\\basic.vert","shaders\\basic.frag");
 
-	const char* shaderTextVertex = 
-		"#version 330 core\n"
-		"layout(location = 0) in vec3 aPos;\n"
-		"layout(location = 1) in vec4 inColor;\n"
-		"out vec4 fragColor;\n"
-		"void main()\n"
-		"{		gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0f)\n;"
-		"fragColor = inColor;}";
-
-	unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(vertexShader, 1, &shaderTextVertex,NULL);
-	glCompileShader(vertexShader);
-
-	char resultInfo[1000];
-	int res;
-	glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &res);
-	if (res==0)
-	{
-		glGetShaderInfoLog(vertexShader, 1000, NULL, resultInfo);
-		cout << "\n err " << resultInfo;
-		glfwTerminate();
-		return -1;
-	}
-
-	/*shaderText[0] = 0;
-	sfile.open("basic.fs");
-	while (!sfile.eof())
-	{
-		str[0] = '\0';
-		sfile >> str;
-		if (str[0] != '\0')
-			strcat_s(shaderText, 200, str);
-	}
-	sfile.close();*/
-
-	const char* shaderTextFragment = "#version 330 core\n"
-		"in vec4 fragColor;"
-		"out vec4 outColor;\n"
-		"void main()\n"
-		"{	outColor = fragColor;	 	}";
-
-	unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fragmentShader, 1, &shaderTextFragment, NULL);
-	glCompileShader(fragmentShader);
-
-	glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &res);
-	if (res == 0)
-	{
-		glGetShaderInfoLog(fragmentShader, 1000, NULL, resultInfo);
-		cout << "\n err comp " << resultInfo;
-		glfwTerminate();
-		return -1;
-	}
-
-	unsigned int shaderProc;
-	shaderProc = glCreateProgram();
-	glAttachShader(shaderProc, vertexShader);
-	glAttachShader(shaderProc, fragmentShader);
-	glLinkProgram(shaderProc);
-
-	glGetProgramiv(shaderProc, GL_LINK_STATUS, &res);
-	if (res == 0)
-	{
-		glGetProgramInfoLog(shaderProc, 1000, NULL, resultInfo);
-		cout << "\n err link " << resultInfo;
-		glfwTerminate();
-		return -1;
-	}
-
-	glDeleteShader(vertexShader);
-	glDeleteShader(fragmentShader);
-
-
-
+	float color[3] = { 0.0f, 0.0f, 1.0f };
+	float position[3] = { 0.0f, 0.0f, 0.0f };
+	int stage = 0;
 	while (!glfwWindowShouldClose(win))
 	{
+		color[0] = (sin(glfwGetTime())+1)/2;
+		color[1] = (cos(glfwGetTime() + 3.1415) + 1) / 2;
+		color[2] =  (-cos(glfwGetTime()) + 1) / 2;
+
+		position[0] = sin(glfwGetTime()*2)/3 ;
+		position[1] = cos(glfwGetTime())/3 ;
+		position[2] = 0;//(cos(glfwGetTime() + 3.1415) + 1) / 2;
 		processInput(win);
 		glClearColor(backg.r, backg.g, backg.b, backg.a);
 		glClear(GL_COLOR_BUFFER_BIT);
-
-		glBindBuffer(GL_ARRAY_BUFFER, VBO_polygon);
-	
 		
-		glUseProgram(shaderProc);
+		polygon_shader->use();
+		polygon_shader->setFloatVec("uniformColor", color, 3);
+		polygon_shader->setFloatVec("uniformPos", position, 3);
 		glBindVertexArray(VAO_polygon);
-		glDrawArrays(GL_TRIANGLES, 0, verts);
-		
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
 		glfwSwapBuffers(win);
 		glfwPollEvents();
 
 	}
-
+	delete polygon_shader;
 	glfwTerminate();
 	return 0;
 }
