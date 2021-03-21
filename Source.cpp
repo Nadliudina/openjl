@@ -1,9 +1,27 @@
 #include<glad/glad.h>
 #include<GLFW/glfw3.h>
+#include<glm/glm.hpp>
+#include<glm/gtc/matrix_transform.hpp>
+#include<glm/gtc/type_ptr.hpp>
 #include<iostream>
 #include<fstream>
 #include "Shader.h"
 using namespace std;
+using namespace glm;
+
+struct ModelTransform
+{
+	
+	vec3 position;
+	vec3 rotation;
+	vec3 scale ;
+	void setScale(float s) {
+		scale.x = s;
+		scale.y = s;
+		scale.z = s;
+	}
+};
+
 struct Color {
 	float r, g, b, a;
 };
@@ -34,12 +52,13 @@ void processInput(GLFWwindow* win) {
 }
 
 int main() {
+#pragma region WIN_INIT
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	GLFWwindow* win = glfwCreateWindow(500, 550, "OpenGL Window",NULL,NULL);
+	GLFWwindow* win = glfwCreateWindow(900, 900, "OpenGL Window",NULL,NULL);
 	if (win==NULL)
 	{
 		cout << "\nerr 1";
@@ -56,18 +75,16 @@ int main() {
 
 	glfwSetFramebufferSizeCallback(win, OnResize);
 
-	glViewport(0, 0, 500, 550);
-
+	glViewport(0, 0, 900, 900);
+#pragma endregion
 	const int verts = 4;
 
 	float polygon[verts*(3+3)] = {
-		0.0f,0.75f,0.0f,	0.0f,0.75f,0.0f,
+		0.0f,0.75f,0.0f,	1.0f,0.75f,0.0f,
 		0.5f,0.0f,0.0f,		0.5f,0.0f,0.0f,
-		-0.5f,0.0f,0.0f,	-0.5f,0.0f,0.0f,
+		-0.5f,0.0f,0.0f,	-0.5f,0.0f,0.1f,
 		0.0f,-0.75f,0.0f,	1.0f,-0.75f,0.0f,
-	
-		
-	
+
 	};
 
 	unsigned int indices[] = {
@@ -75,6 +92,17 @@ int main() {
 		1,2,3
 	};
 
+	ModelTransform polygonTrans1 = {
+		vec3(0.0f,0.0f,0.0f),
+		vec3(0.0f,0.0f,0.0f),
+		vec3(1.0f,1.0f,1.0f) };
+
+	ModelTransform polygonTrans2 = {
+	vec3(0.0f,0.0f,0.0f),
+	vec3(0.0f,0.0f,0.0f),
+	vec3(1.0f,1.0f,1.0f) };
+
+#pragma region BUFF_IN
 	unsigned int VBO_polygon, VAO_polygon,EBO_polygon;
 	glGenBuffers(1, &VBO_polygon);
 	glGenBuffers(1, &EBO_polygon);
@@ -92,28 +120,54 @@ int main() {
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3*sizeof(float)));
 	glEnableVertexAttribArray(1);
 	
-	Shader* polygon_shader = new Shader("shaders\\basic.vert","shaders\\basic.frag");
+#pragma endregion
 
-	float color[3] = { 0.0f, 0.0f, 1.0f };
-	float position[3] = { 0.0f, 0.0f, 0.0f };
-	int stage = 0;
+	Shader* polygon_shader = new Shader("shaders\\basic.vert","shaders\\basic.frag");
+	
+//	polygonTrans.position.x = 0.3f;
+	
 	while (!glfwWindowShouldClose(win))
 	{
-		color[0] = (sin(glfwGetTime())+1)/2;
-		color[1] = (cos(glfwGetTime() + 3.1415) + 1) / 2;
-		color[2] =  (-cos(glfwGetTime()) + 1) / 2;
-
-		position[0] = sin(glfwGetTime()*2)/3 ;
-		position[1] = cos(glfwGetTime())/3 ;
-		position[2] = 0;//(cos(glfwGetTime() + 3.1415) + 1) / 2;
 		processInput(win);
+
+		polygonTrans1.rotation.z = glfwGetTime() * 30;
+		polygonTrans1.setScale(abs(sin(glfwGetTime()) * 0.5f) + 0.5f);
+		polygonTrans1.position.x = (sin(glfwGetTime()) * 0.9f);
+		polygonTrans1.position.y = (cos(glfwGetTime()) * 0.7f);
+		polygonTrans1.setScale(0.7f);
+
+		polygonTrans2.rotation.z = glfwGetTime() * 60;
+		polygonTrans2.setScale(abs(sin(glfwGetTime()) * 0.5f) + 0.5f);
+		polygonTrans2.position.x = -(sin(glfwGetTime()) * 0.9f);
+		polygonTrans2.position.y = -(cos(glfwGetTime()) * 0.7f);
+		polygonTrans2.setScale(1.7f);
+
 		glClearColor(backg.r, backg.g, backg.b, backg.a);
 		glClear(GL_COLOR_BUFFER_BIT);
 		
 		polygon_shader->use();
-		polygon_shader->setFloatVec("uniformColor", color, 3);
-		polygon_shader->setFloatVec("uniformPos", position, 3);
+		mat4 model = mat4(1.0f);
+		model = translate(model, polygonTrans1.position);
+		model = rotate(model, radians(polygonTrans1.rotation.x), vec3(1.0f, 0.0f, 0.0f));
+		model = rotate(model, radians(polygonTrans1.rotation.y), vec3(0.0f, 1.0f, 0.0f));
+		model = rotate(model, radians(polygonTrans1.rotation.z), vec3(0.0f, 0.0f, 1.0f));
+		model = scale(model, polygonTrans1.scale);
+		polygon_shader->setMatrix4F("model", model);
+
 		glBindVertexArray(VAO_polygon);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		
+		/////////////////////
+
+		model=mat4(1.0f);
+		model = translate(model, polygonTrans2.position);
+		model = rotate(model, radians(polygonTrans2.rotation.x), vec3(1.0f, 0.0f, 0.0f));
+		model = rotate(model, radians(polygonTrans2.rotation.y), vec3(0.0f, 1.0f, 0.0f));
+		model = rotate(model, radians(polygonTrans2.rotation.z), vec3(0.0f, 0.0f, 1.0f));
+		model = scale(model, polygonTrans2.scale);
+		polygon_shader->setMatrix4F("model", model);
+
+	//	glBindVertexArray(VAO_polygon);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
 		glfwSwapBuffers(win);

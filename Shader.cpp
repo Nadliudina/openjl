@@ -1,4 +1,5 @@
 #include "Shader.h"
+#include <glm/gtc/type_ptr.hpp>
 
 unsigned int Shader::ID()
 {
@@ -100,6 +101,12 @@ void Shader::setFloatVec(const string& name, float * vec,int vec_size) const
 		break;
 	}
  
+}
+
+void Shader::setMatrix4F(const string& name, glm::mat4& m) 
+{
+	glUniformMatrix4fv(glGetUniformLocation(programID, name.c_str()), 1, GL_FALSE, value_ptr(m));
+
 }
 
 void Shader::checkCompileErrors(unsigned int shader, string type)
