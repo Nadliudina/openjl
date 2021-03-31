@@ -1,10 +1,16 @@
 #version 330 core
 in vec3 vertColor;
+in vec2 texCoords;
 out vec4 outColor;
 
+uniform sampler2D ourTexture;
+uniform bool wireframeMode;
 
 void main()
 {
-outColor = vec4(vertColor.xyz,1.0f);
+if	(wireframeMode)
+outColor = vec4(vertColor,1.0f);
+else
+outColor = vec4(vertColor,1.0f)*texture(ourTexture,texCoords );
 
 }
