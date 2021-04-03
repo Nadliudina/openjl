@@ -78,6 +78,7 @@ void processInput(GLFWwindow* win,double dt) {
 	{
 		dir |= CAM_RIGHT;
 	}
+
 	double newx = 0.f, newy = 0.f;
 	glfwGetCursorPos(win, &newx, &newy);
 	static double x = newx, y = newy;
@@ -249,8 +250,8 @@ int main() {
 	{
 		newTime = glfwGetTime();
 		deltaTime = newTime-oldTime;
-		oldTime =  oldTime;
-		processInput(win, deltaTime);
+		oldTime = newTime;
+		processInput(win, deltaTime*100.f);
 	//	camera.Rotate(glfwGetTime() * 0.1f, 0, 0);
 
 	//	polygonTrans1.rotation.x = glfwGetTime() * 30;
